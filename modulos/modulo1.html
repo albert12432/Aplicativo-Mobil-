@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo 1 - Gramática Básica</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="modulo.css">
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">ICFES Academy</div>
+            <ul class="nav-links">
+                <li><a href="../index.html">Volver al Inicio</a></li>
+            </ul>
+        </nav>
+    </header>
+    <div id="root" class="module-content"></div>
+    <script src="../test.js"></script>
+    <script type="text/babel">
+        const QuizApp = () => {
+            const quizData = window.QUIZ_DATA.grammar;
+            // Estados
+            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            const [isAnswerChecked, setIsAnswerChecked] = useState(false);
+            const [isLoading, setIsLoading] = useState(false);
+
+            const currentQuestion = quizData[currentQuestionIndex];
+            const progressPercentage = ((currentQuestionIndex) / quizData.length) * 100;
+
+            const handleOptionSelect = (option) => {
+                if (!isAnswerChecked) {
+                    setSelectedAnswer(option);
+                }
+            };
+
+            const checkAnswer = () => {
+                if (selectedAnswer && !isAnswerChecked) {
+                    setIsAnswerChecked(true);
+                    if (selectedAnswer === currentQuestion.answer) {
+                        setScore(prevScore => prevScore + 1);
+                    }
+                }
+            };
+
+            const nextQuestion = () => {
+                if (currentQuestionIndex < quizData.length - 1) {
+                    setIsLoading(true);
+                    setTimeout(() => {
+                        setCurrentQuestionIndex(prevIndex => prevIndex + 1);
+                        setSelectedAnswer(null);
+                        setIsAnswerChecked(false);
+                        setIsLoading(false);
+                    }, 500);
+                } else {
+                    // Mostrar resultados finales
+                    const finalScore = score + (isAnswerChecked && selectedAnswer === currentQuestion.answer ? 1 : 0);
+                    alert(`Test completado! Puntuación final: ${finalScore}/${quizData.length}`);
+                    // Reiniciar el quiz
+                    setCurrentQuestionIndex(0);
+                    setScore(0);
+                    setSelectedAnswer(null);
+                    setIsAnswerChecked(false);
+                }
+            };
+
+            const getOptionClass = (option) => {
+                const baseClasses = "p-4 w-full text-left rounded-xl transition-all duration-200 border-2 cursor-pointer mb-3 shadow-md ";
+
+                if (!isAnswerChecked) {
+                    return baseClasses + (selectedAnswer === option
+                        ? 'bg-blue-100 border-blue-600 text-blue-800 font-semibold transform scale-[1.01]'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    );
+                }
+
+                if (option === currentQuestion.answer) {
+                    return baseClasses + 'bg-green-100 border-green-600 text-green-800 font-bold';
+                } else if (selectedAnswer === option) {
+                    return baseClasses + 'bg-red-100 border-red-600 text-red-800 font-bold';
+                } else {
+                    return baseClasses + 'bg-white border-gray-200 text-gray-700 opacity-70';
+                }
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-auto p-6 md:p-8">
+                    <div className="flex justify-between items-center mb-4 pb-3 border-b">
+                        <span className="text-sm font-medium text-gray-600">
+                            Pregunta {currentQuestionIndex + 1} de {quizData.length}
+                        </span>
+                    </div>
+
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                        <div
+                            className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+                            style={{ width: `${progressPercentage}%` }}
+                        ></div>
+                    </div>
+
+                    <div className="mb-6">
+                        <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700 mr-2">
+                            Nivel: {currentQuestion.level}
+                        </span>
+                        <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
+                            Categoría: {currentQuestion.category}
+                        </span>
+                    </div>
+
+                    <div className="bg-blue-50 p-6 rounded-xl border-l-4 border-blue-500 mb-6">
+                        <p className="text-xl font-semibold text-gray-800">
+                            {currentQuestion.question}
+                        </p>
+                    </div>
+
+                    <div className="space-y-3">
+                        {currentQuestion.options.map((option, index) => (
+                            <button
+                                key={index}
+                                onClick={() => handleOptionSelect(option)}
+                                disabled={isAnswerChecked}
+                                className={getOptionClass(option)}
+                            >
+                                {option}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 flex justify-end">
+                        {!isAnswerChecked ? (
+                            <button
+                                onClick={checkAnswer}
+                                disabled={!selectedAnswer}
+                                className={`py-3 px-8 text-white font-bold rounded-xl shadow-lg transition-all duration-300 ${
+                                    selectedAnswer
+                                        ? 'bg-green-600 hover:bg-green-700'
+                                        : 'bg-gray-400 cursor-not-allowed'
+                                }`}
+                            >
+                                Verificar Respuesta
+                            </button>
+                        ) : (
+                            <button
+                                onClick={nextQuestion}
+                                className="py-3 px-8 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-300"
+                            >
+                                {currentQuestionIndex < quizData.length - 1 ? 'Siguiente Pregunta' : 'Finalizar Test'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<QuizApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
