@@ -1,0 +1,80 @@
+/* Estilos específicos para los módulos */
+.module-content {
+    max-width: 1000px;
+    margin: 80px auto 60px;
+    padding: 2rem;
+}
+
+.module-content h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.lesson {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.lesson h2 {
+    color: #3498db;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #f1f1f1;
+    padding-bottom: 0.5rem;
+}
+
+.lesson-content {
+    line-height: 1.8;
+}
+
+.lesson-content ul {
+    margin: 1rem 0;
+    padding-left: 2rem;
+}
+
+.practice-section {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.practice-section h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.exercise {
+    margin-top: 1rem;
+}
+
+.question {
+    margin: 1rem 0;
+}
+
+.check-answer {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+.check-answer:hover {
+    background: #2980b9;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .module-content {
+        padding: 1rem;
+    }
+
+    .lesson {
+        padding: 1rem;
+    }
+}

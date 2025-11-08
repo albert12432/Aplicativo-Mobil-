@@ -1,0 +1,424 @@
+import React, { useState, useMemo, useCallback } from 'react';
+import { Check, X, Repeat2, Zap, BrainCircuit, Loader2, BookOpen, Lock, Unlock, ArrowLeft } from 'lucide-react';
+
+// --- DATOS DE LAS PRUEBAS ---
+
+// Datos de la prueba inicial: Gramática y Vocabulario (A1-A2)
+const QUIZ_DATA_GRAMMAR = [
+  { level: 'A1', category: 'Verbos Comunes', question: "¿Qué verbo significa 'comer' en español?", options: ['To drink', 'To eat', 'To sleep', 'To read'], answer: 'To eat' },
+  { level: 'A2', category: 'Conectores', question: "Ella estaba cansada, ___ siguió trabajando.", options: ['because', 'although', 'so', 'if'], answer: 'although' },
+  { level: 'A2', category: 'Verbos Comunes', question: "El pasado simple de 'go' es:", options: ['goed', 'went', 'gone', 'going'], answer: 'went' },
+  { level: 'A2', category: 'Conectores', question: "Quiero estudiar medicina, ___ tengo que aprobar el ICFES.", options: ['but', 'therefore', 'or', 'while'], answer: 'therefore' },
+  { level: 'A1', category: 'Verbos Comunes', question: "La forma correcta de decir 'él tiene' es:", options: ['He have', 'He has', 'He having', 'He is have'], answer: 'He has' },
+];
+
+// Datos de la prueba desbloqueable: Comprensión Lectora (B1-B2)
+const READING_TEXT = "The city council announced a new initiative today to reduce traffic congestion. Starting next month, all public transport will be free during peak hours (7 AM to 9 AM and 5 PM to 7 PM) on weekdays. This measure is an attempt to encourage commuters to leave their private vehicles at home. However, critics argue that the city's bus fleet is currently insufficient to handle the expected increase in passengers, potentially leading to overcrowding and delays. The council has promised to add fifty new buses to the service by the end of the year, but many citizens remain skeptical until they see the improvement.";
+
+const QUIZ_DATA_READING = [
+  { level: 'B1', category: 'Comprensión Lectora', question: "El objetivo principal de la nueva iniciativa es:", options: ['Reducir el costo del transporte público.', 'Aumentar la flota de autobuses.', 'Disminuir la congestión vehicular.', 'Extender los horarios pico.'], answer: 'Disminuir la congestión vehicular.', text: READING_TEXT },
+  { level: 'B1', category: 'Comprensión Lectora', question: "Según el texto, el transporte público será gratuito:", options: ['Solo los fines de semana.', 'Solo en las horas valle.', 'Durante las horas de mayor tráfico.', 'Todo el día, todos los días.'], answer: 'Durante las horas de mayor tráfico.', text: READING_TEXT },
+  { level: 'B2', category: 'Vocabulario Contextual', question: "En el contexto, ¿qué significa 'skeptical'?", options: ['Entusiasmado', 'Optimista', 'Dudoso', 'Apoyado'], answer: 'Dudoso', text: READING_TEXT },
+];
+
+
+// Componente principal de la aplicación
+const App = () => {
+  // Estado para la fase de la aplicación: 'initial', 'selecting_test', 'playing', 'finished'
+  const [appState, setAppState] = useState('initial');
+  // Estado para el tipo de prueba actual: 'grammar' o 'reading'
+  const [quizType, setQuizType] = useState('grammar');
+  // Estado para el índice de la pregunta actual
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  // Estado para la puntuación del usuario
+  const [score, setScore] = useState(0);
+  // Estado para la respuesta seleccionada por el usuario
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  // Estado para indicar si la respuesta ya ha sido verificada
+  const [isAnswerChecked, setIsAnswerChecked] = useState(false);
+  // Estado para el desbloqueo de la prueba de lectura (Simulado en frontend)
+  const [isReadingUnlocked, setIsReadingUnlocked] = useState(false);
+  // Estado de carga simulado
+  const [isLoading, setIsLoading] = useState(false);
+
+
+  // Determina qué conjunto de datos usar
+  const activeQuizData = useMemo(() => {
+    return quizType === 'grammar' ? QUIZ_DATA_GRAMMAR : QUIZ_DATA_READING;
+  }, [quizType]);
+
+  // Obtiene la pregunta actual
+  const currentQuestion = useMemo(() => activeQuizData[currentQuestionIndex], [currentQuestionIndex, activeQuizData]);
+  // Calcula el progreso
+  const progressPercentage = ((currentQuestionIndex) / activeQuizData.length) * 100;
+
+
+  // Inicia una prueba específica
+  const startQuiz = useCallback((type) => {
+    setQuizType(type);
+    setCurrentQuestionIndex(0);
+    setScore(0);
+    setSelectedAnswer(null);
+    setIsAnswerChecked(false);
+    setAppState('playing');
+  }, []);
+
+  // Maneja la selección de una opción
+  const handleOptionSelect = (option) => {
+    if (!isAnswerChecked) {
+      setSelectedAnswer(option);
+    }
+  };
+
+  // Verifica la respuesta seleccionada
+  const checkAnswer = () => {
+    if (selectedAnswer && !isAnswerChecked) {
+      setIsAnswerChecked(true);
+      if (selectedAnswer === currentQuestion.answer) {
+        setScore(prevScore => prevScore + 1);
+      }
+    }
+  };
+
+  // Avanza a la siguiente pregunta o finaliza el quiz
+  const nextQuestion = () => {
+    if (currentQuestionIndex < activeQuizData.length - 1) {
+      setIsLoading(true);
+      setTimeout(() => {
+        setCurrentQuestionIndex(prevIndex => prevIndex + 1);
+        setSelectedAnswer(null);
+        setIsAnswerChecked(false);
+        setIsLoading(false);
+      }, 500); // Pausa para simular una transición
+    } else {
+      // Si es el quiz de gramática y obtuviste 5/5, desbloquea la lectura
+      if (quizType === 'grammar' && score + (selectedAnswer === currentQuestion.answer ? 1 : 0) === QUIZ_DATA_GRAMMAR.length) {
+        setIsReadingUnlocked(true);
+      }
+      setAppState('finished');
+    }
+  };
+  // Reinicia el estado para volver a la selección de prueba
+  const goToTestSelection = () => {
+    setAppState('selecting_test');
+    setScore(0);
+  };
+
+
+  // Determina la clase CSS para el estilo de la opción
+  const getOptionClass = (option) => {
+    const baseClasses = "p-4 w-full text-left rounded-xl transition-all duration-200 border-2 cursor-pointer mb-3 shadow-md ";
+
+    if (!isAnswerChecked) {
+      // Estado de selección antes de verificar
+      return baseClasses + (selectedAnswer === option
+        ? 'bg-blue-100 border-blue-600 text-blue-800 font-semibold transform scale-[1.01]'
+        : 'bg-white border-gray-200 hover:bg-gray-50'
+      );
+    }
+
+    // Estado después de verificar
+    if (option === currentQuestion.answer) {
+      // Respuesta correcta
+      return baseClasses + 'bg-green-100 border-green-600 text-green-800 font-bold shake-correct';
+    } else if (selectedAnswer === option && selectedAnswer !== currentQuestion.answer) {
+      // Respuesta incorrecta seleccionada
+      return baseClasses + 'bg-red-100 border-red-600 text-red-800 font-bold shake-incorrect';
+    } else {
+      // Opciones no seleccionadas o incorrectas
+      return baseClasses + 'bg-white border-gray-200 text-gray-700 opacity-70';
+    }
+  };
+
+
+  // --- PANTALLAS DE LA APP ---
+
+  // Contenido de la pantalla inicial (Landing)
+  const renderInitialScreen = () => (
+    <div className="text-center p-8 bg-white rounded-xl shadow-2xl max-w-lg mx-auto transform hover:scale-[1.01] transition-transform duration-300">
+      <Zap className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+      <h1 className="text-3xl font-extrabold text-gray-900 mb-3">
+        Plataforma ICFES Bilingüe
+      </h1>
+      <p className="text-gray-600 mb-6">
+        Reduce la brecha educativa con rutas de aprendizaje enfocadas en las pruebas de estado.
+      </p>
+      <button
+        onClick={() => setAppState('selecting_test')}
+        className="w-full py-3 px-6 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+      >
+        <BrainCircuit className="w-5 h-5 mr-2" />
+        Ir a la Ventana de Test
+      </button>
+    </div>
+  );
+
+  // Contenido de la pantalla de selección de tests (La "Ventana de Test")
+  const renderTestSelectionScreen = () => (
+    <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl mx-auto p-8">
+      <h2 className="text-3xl font-bold text-gray-900 mb-6 border-b pb-3 flex items-center">
+        <BookOpen className="w-7 h-7 mr-3 text-blue-600" />
+        Ventana de Test
+      </h2>
+
+      {/* Tarjeta 1: Gramática y Vocabulario (A1-A2) */}
+      <div className="mb-6 p-5 border-2 border-green-200 bg-green-50 rounded-xl shadow-lg">
+        <h3 className="text-xl font-semibold text-green-800 mb-2">
+          Nivel 1: Gramática y Vocabulario
+        </h3>
+        <p className="text-gray-600 mb-4 text-sm">
+          Refuerzo de bases (Verbos, Conectores). Es necesario completar 5/5 para desbloquear el siguiente nivel.
+        </p>
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium text-gray-500">
+            Nivel: A1 - A2 | {QUIZ_DATA_GRAMMAR.length} Preguntas
+          </span>
+          <button
+            onClick={() => startQuiz('grammar')}
+            className="py-2 px-6 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all duration-200"
+          >
+            Iniciar Práctica
+          </button>
+        </div>
+      </div>
+
+      {/* Tarjeta 2: Comprensión Lectora (B1-B2) - Bloqueada/Desbloqueada */}
+      <div className={`p-5 border-2 rounded-xl shadow-lg transition-colors duration-300 ${
+          isReadingUnlocked
+            ? 'border-blue-200 bg-blue-50'
+            : 'border-yellow-200 bg-yellow-50 opacity-70'
+        }`}>
+        <h3 className="text-xl font-semibold text-gray-800 mb-2 flex items-center">
+          Nivel 2: Comprensión Lectora
+          {isReadingUnlocked ? (
+            <Unlock className="w-5 h-5 ml-2 text-blue-600" />
+          ) : (
+            <Lock className="w-5 h-5 ml-2 text-yellow-700" />
+          )}
+        </h3>
+        <p className="text-gray-600 mb-4 text-sm">
+          Simulación de textos largos y preguntas de inferencia, crucial para el nivel B1/B2 del ICFES.
+        </p>
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium text-gray-500">
+            Nivel: B1 - B2 | {QUIZ_DATA_READING.length} Preguntas
+          </span>
+          <button
+            onClick={() => isReadingUnlocked && startQuiz('reading')}
+            disabled={!isReadingUnlocked}
+            className={`py-2 px-6 text-white font-bold rounded-lg transition-all duration-200 ${
+              isReadingUnlocked
+                ? 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {isReadingUnlocked ? 'Empezar Lectura' : 'Bloqueado (Necesitas 5/5 en Nivel 1)'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Contenido de la pantalla de juego
+  const renderPlayingScreen = () => (
+    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-auto p-6 md:p-8">
+
+      {/* Header y progreso */}
+      <div className="flex justify-between items-center mb-4 pb-3 border-b">
+        <button onClick={goToTestSelection} className="text-blue-600 hover:text-blue-800 flex items-center text-sm font-medium">
+            <ArrowLeft className="w-4 h-4 mr-1" /> Volver a Tests
+        </button>
+        <span className="text-sm font-medium text-gray-600">
+          Pregunta {currentQuestionIndex + 1} de {activeQuizData.length}
+        </span>
+      </div>
+
+      <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+        <div
+          className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+          style={{ width: `${progressPercentage}%` }}
+        ></div>
+      </div>
+
+      {/* Si es lectura, muestra el texto primero */}
+      {currentQuestion.text && (
+        <div className="mb-6 p-4 bg-gray-50 border-l-4 border-gray-300 rounded-lg shadow-inner">
+          <h4 className="text-lg font-semibold text-gray-700 mb-2">Texto de Lectura:</h4>
+          <p className="text-sm text-gray-600 italic leading-relaxed">
+            {currentQuestion.text}
+          </p>
+        </div>
+      )}
+
+      {/* Título y Categoría */}
+      <div className="mb-6">
+        <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700 mr-2">
+          Nivel: {currentQuestion.level}
+        </span>
+        <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
+          Categoría: {currentQuestion.category}
+        </span>
+      </div>
+
+      {/* Pregunta */}
+      <div className="bg-blue-50 p-6 rounded-xl border-l-4 border-blue-500 mb-6 shadow-inner">
+        <p className="text-xl font-semibold text-gray-800">
+          {currentQuestion.question}
+        </p>
+      </div>
+
+      {/* Opciones */}
+      <div className="space-y-3">
+        {currentQuestion.options.map((option, index) => (
+          <button
+            key={index}
+            onClick={() => handleOptionSelect(option)}
+            disabled={isAnswerChecked || isLoading}
+            className={getOptionClass(option)}
+          >
+            <span className="font-mono text-gray-500 mr-3">({String.fromCharCode(65 + index)})</span>
+            {option}
+
+            {/* Icono de feedback */}
+            {isAnswerChecked && option === currentQuestion.answer && (
+              <Check className="w-5 h-5 text-green-600 float-right" />
+            )}
+            {isAnswerChecked && selectedAnswer === option && selectedAnswer !== currentQuestion.answer && (
+              <X className="w-5 h-5 text-red-600 float-right" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Botones de acción */}
+      <div className="mt-6 flex justify-end">
+        {!isAnswerChecked ? (
+          <button
+            onClick={checkAnswer}
+            disabled={!selectedAnswer || isLoading}
+            className={`py-3 px-8 text-white font-bold rounded-xl shadow-lg transition-all duration-300 ${
+              selectedAnswer
+                ? 'bg-green-600 hover:bg-green-700 transform hover:scale-105'
+                : 'bg-gray-400 cursor-not-allowed'
+            } flex items-center justify-center`}
+          >
+            <Check className="w-5 h-5 mr-2" />
+            Verificar Respuesta
+          </button>
+        ) : (
+          <button
+            onClick={nextQuestion}
+            disabled={isLoading}
+            className="py-3 px-8 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Cargando...
+              </>
+            ) : (
+              <>
+                {currentQuestionIndex < activeQuizData.length - 1 ? 'Siguiente Pregunta' : 'Finalizar Test'}
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  // Contenido de la pantalla de resultados
+  const renderResultScreen = () => {
+    const totalQuestions = activeQuizData.length;
+    const finalScore = score + (isAnswerChecked && selectedAnswer === currentQuestion.answer ? 1 : 0);
+    const perfectScore = finalScore === totalQuestions;
+
+    return (
+      <div className="text-center p-8 bg-white rounded-xl shadow-2xl max-w-lg mx-auto">
+        <div className="flex items-center justify-center mb-6">
+          <Check className="w-16 h-16 text-green-600 bg-green-100 p-2 rounded-full mr-3" />
+          <h1 className="text-4xl font-extrabold text-gray-900">
+            Resultados del Test
+          </h1>
+        </div>
+        <p className="text-xl text-gray-700 mb-2">
+          {quizType === 'grammar' ? 'Gramática y Vocabulario (A1/A2)' : 'Comprensión Lectora (B1/B2)'}
+        </p>
+        <div className="text-6xl font-black text-blue-600 my-8 bg-blue-50 p-6 rounded-xl inline-block shadow-inner">
+          {finalScore} / {totalQuestions}
+        </div>
+        <p className="text-lg text-gray-600 mb-4">
+          Tu puntuación es del {Math.round((finalScore / totalQuestions) * 100)}%.
+        </p>
+
+        {/* Mensaje de desbloqueo */}
+        {quizType === 'grammar' && perfectScore && (
+          <div className="bg-green-100 p-4 rounded-lg mb-6 border border-green-400">
+            <Unlock className="w-5 h-5 text-green-600 inline-block mr-2" />
+            <span className="font-bold text-green-800">¡NIVEL DESBLOQUEADO!</span>
+            <p className="text-sm text-green-700 mt-1">
+              Obtuviste {totalQuestions}/{totalQuestions}. ¡Ya puedes acceder a la prueba de Comprensión Lectora!
+            </p>
+          </div>
+        )}
+
+        <button
+          onClick={goToTestSelection}
+          className="w-full py-3 px-6 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+        >
+          <Repeat2 className="w-5 h-5 mr-2" />
+          Volver a la Ventana de Test
+        </button>
+      </div>
+    );
+  };
+
+
+  // Renderizado principal basado en el estado
+  let content;
+  switch (appState) {
+    case 'initial':
+      content = renderInitialScreen();
+      break;
+    case 'selecting_test':
+      content = renderTestSelectionScreen();
+      break;
+    case 'playing':
+      content = renderPlayingScreen();
+      break;
+    case 'finished':
+      content = renderResultScreen();
+      break;
+    default:
+      content = <div>Error de estado.</div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+      {/* Estilos CSS para animaciones de feedback */}
+      <style>{`
+        .shake-incorrect {
+          animation: shake 0.5s;
+          box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
+        }
+        .shake-correct {
+          animation: pulse-correct 0.5s;
+          box-shadow: 0 0 10px rgba(22, 163, 74, 0.5);
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-5px); }
+          40%, 80% { transform: translateX(5px); }
+        }
+        @keyframes pulse-correct {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.01); }
+            100% { transform: scale(1); }
+        }
+      `}</style>
+      {content}
+    </div>
+  );
+};
+
+export default App;
